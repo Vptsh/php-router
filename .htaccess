@@ -1,0 +1,29 @@
+RewriteEngine On
+
+#################################
+# PREVENT CONTROLLER LOOP
+#################################
+
+RewriteRule ^v\.php$ - [L]
+
+#################################
+# CLOUDFLARE HTTPS SAFE
+#################################
+
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+#################################
+# ALLOW STATIC FILES DIRECT
+#################################
+
+RewriteRule \.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|pdf)$ - [L,NC]
+
+
+#################################
+# EVERYTHING ELSE → MAPPER
+#################################
+
+RewriteRule ^ v.php [L,QSA]
+
