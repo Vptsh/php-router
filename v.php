@@ -10,13 +10,28 @@ if (!file_exists($config)) {
     http_response_code(500);
     exit("Config missing");
 }
-
 require_once $config;
+
+/* ================= MASTER CONTROL PANEL ================= */
+
+define('ROUTER_ENABLED', true);
+define('ROUTE_CREATION_ENABLED', false);
+define('ACCESS_LOG_ENABLED', true);
+define('SECURITY_LOG_ENABLED', true);
+define('TOKEN_SECURITY_ENABLED', true);
+define('BOT_PROTECTION_ENABLED', true);
+define('AUTO_SIGN_REDIRECT', true);
+
+if (!ROUTER_ENABLED) {
+    http_response_code(503);
+    exit("Router disabled");
+}
 
 /* ================= SECURITY CONFIG ================= */
 define('RATE_LIMIT_MAX', 40);
 define('RATE_LIMIT_WINDOW', 60);
 define('TOKEN_REPLAY_WINDOW', 7200);
+define('MAX_UNIQUE_IP_TRACK', 100);
 define('STEALTH_BAN_TIME', 900);
 define('BOT_SCORE_BASE', 60);
 define('JSON_MAX_AGE', 604800);
@@ -534,6 +549,17 @@ if (!hash_equals($calc, $sig)) {
 
 
 /* ================= PATH HELPERS ================= */
+function normalize_rel_path(string $path): string {
+
+    $path = str_replace('\\','/',$path);
+
+    $path = preg_replace('#^\./#','',$path);
+
+    $path = preg_replace('#/+#','/',$path);
+
+    return trim($path,'/');
+}
+
 function safe_realpath_within(string $baseDir, string $relPath) {
     $candidate = realpath($baseDir.'/'.ltrim($relPath,'/'));
     if ($candidate === false) return false;
@@ -547,19 +573,98 @@ function safe_realpath_within(string $baseDir, string $relPath) {
 
 function load_map(string $file): array {
     if (!file_exists($file)) return [];
+
     $raw = @file_get_contents($file);
-    $d = @json_decode($raw,true);
-    return is_array($d) ? $d : [];
+    $d = @json_decode($raw, true);
+
+    if (!is_array($d)) return [];
+
+    foreach ($d as $k => $v) {
+
+        if (is_string($v)) {
+            $d[$k] = [
+                'url' => $v,
+                'count' => 0,
+                'last_used' => 0,
+                'daily' => [],
+                'unique_ips' => [],
+                'access_types' => [],
+                'bot_hits' => 0
+            ];
+        }
+
+        $d[$k]['daily'] = $d[$k]['daily'] ?? [];
+        $d[$k]['unique_ips'] = $d[$k]['unique_ips'] ?? [];
+        $d[$k]['access_types'] = $d[$k]['access_types'] ?? [];
+        $d[$k]['bot_hits'] = $d[$k]['bot_hits'] ?? 0;
+    }
+
+    return $d;
 }
 
 function save_map(string $file, array $map): void {
     file_put_contents($file,json_encode($map,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES),LOCK_EX);
 }
+function update_route_metrics(&$map, $mapFile, $id, $ip, $accessType){
+
+    if (!isset($map[$id])) return;
+
+    $today = date('Y-m-d');
+
+    $map[$id]['count']++;
+    $map[$id]['last_used'] = time();
+
+    if (!isset($map[$id]['daily'][$today])) {
+        $map[$id]['daily'][$today] = 0;
+    }
+    $map[$id]['daily'][$today]++;
+
+    if (!in_array($ip, $map[$id]['unique_ips'])) {
+        $map[$id]['unique_ips'][] = $ip;
+
+        if (count($map[$id]['unique_ips']) > MAX_UNIQUE_IP_TRACK) {
+            array_shift($map[$id]['unique_ips']);
+        }
+    }
+
+    if (!isset($map[$id]['access_types'][$accessType])) {
+        $map[$id]['access_types'][$accessType] = 0;
+    }
+    $map[$id]['access_types'][$accessType]++;
+
+    if (bot_score_get($ip) > adaptive_bot_threshold()) {
+        $map[$id]['bot_hits']++;
+    }
+
+    save_map($mapFile, $map);
+}
 
 /* ================= INIT ================= */
 $map = load_map($mapFile);
-if (!isset($map['0'])) $map['0'] = 'index.html';
-if (!isset($map['999'])) $map['999'] = 'error.html';
+if (!isset($map['0'])) {
+ $map['0'] = [
+  'url' => 'index.html',
+  'count' => 0,
+  'last_used' => 0,
+  'daily' => [],
+  'unique_ips' => [],
+  'access_types' => [],
+  'bot_hits' => 0
+ ];
+}
+
+if (!isset($map['999'])) {
+ $map['999'] = [
+  'url' => 'error.html',
+  'count' => 0,
+  'last_used' => 0,
+  'daily' => [],
+  'unique_ips' => [],
+  'access_types' => [],
+  'bot_hits' => 0
+ ];
+}
+
 save_map($mapFile,$map);
 
 /* ================= REQUEST INFO ================= */
@@ -626,7 +731,9 @@ function respond_error_and_log(string $label, array $info): void {
  ];
 
  $full = array_merge($full,$info);
- log_once($securityLog,$full);
+if (SECURITY_LOG_ENABLED) {
+    log_once($securityLog,$full);
+} 
 
  http_response_code(404);
  if(file_exists($errorPage)) readfile($errorPage);
@@ -650,14 +757,16 @@ if (isset($_GET['id']) && isset($_GET['sig'])) {
 }
 /* SECURITY POST VERIFY */
 
-if(token_used_check($_GET['sig'])){
+if(TOKEN_SECURITY_ENABLED && token_used_check($_GET['sig'])){
  bot_score_add($IP,15);
  respond_error_and_log('TOKEN_REPLAY',[
    'URL'=>$ORIG_URI
  ]);
 }
 
-token_used_add($_GET['sig']);
+if (TOKEN_SECURITY_ENABLED) {
+    token_used_add($_GET['sig']);
+}
 
 $leakCount = token_leak_track($_GET['sig'],$IP);
 if($leakCount > 5){
@@ -681,7 +790,8 @@ if($leakCount > 5){
     $_GET = $signedData;
     $_SERVER['QUERY_STRING'] = http_build_query($signedData);
 
-    $mappedRel = $map[$id];
+    $routeData = $map[$id];
+    $mappedRel = $routeData['url'];
     $mappedAbs = safe_realpath_within(__DIR__, $mappedRel);
 
 if ($mappedAbs !== false) {
@@ -706,6 +816,7 @@ if (!file_exists($mappedAbs)) {
         $eventCombined = 'SIGNED_ACCESS_ALLOWED';
     }
 $accessType = classify_access_type($eventCombined, $id);
+update_route_metrics($map, $mapFile, $id, $IP, $accessType);
     $logEntry = [
         'TIME'=>date('Y-m-d H:i:s'),
         'SESSION'=>$VISITOR_ID,
@@ -741,7 +852,7 @@ if ($last) {
     }
 }
 
-if ($shouldLog) {
+if ($shouldLog && ACCESS_LOG_ENABLED) {
     log_once($accessLog,$logEntry);
     $_SESSION['LAST_ROUTER_ACCESS'] = [
         'key' => $dedupeKey,
@@ -827,29 +938,65 @@ if ($realCandidate !== false) {
 
 if ($realCandidate !== false && file_exists($realCandidate)) {
 
-   $lookupKey = $canonicalRelPath ?: $PATH;
-$found = array_search($lookupKey,$map,true);
-    $created_new = false;
+$lookupKey = normalize_rel_path(
+    $canonicalRelPath ?: $PATH
+);
 
-    if ($found === false) {
-        $newId = substr(md5($PATH.microtime(true)),0,6);
-        while (isset($map[$newId])) {
-            $newId = substr(md5($PATH.rand()),0,6);
-        }
-       $map[$newId] = $lookupKey;
-        save_map($mapFile,$map);
-        $found = $newId;
-        $created_new = true;
+$found = false;
+
+foreach ($map as $existingId => $routeData) {
+
+    if (
+        isset($routeData['url']) &&
+        normalize_rel_path($routeData['url']) === $lookupKey
+    ) {
+        $found = $existingId;
+        break;
     }
+}
+
+
+$created_new = false;
+
+if ($found === false) {
+
+    if (!ROUTE_CREATION_ENABLED) {
+        respond_error_and_log('ROUTE_CREATION_DISABLED',[
+            'PATH'=>$lookupKey
+        ]);
+    }
+
+    $newId = substr(md5($PATH.microtime(true)),0,6);
+
+    while (isset($map[$newId])) {
+        $newId = substr(md5($PATH.rand()),0,6);
+    }
+
+    $map[$newId] = [
+        'url' => normalize_rel_path($lookupKey),
+        'count' => 0,
+        'last_used' => 0,
+        'daily' => [],
+        'unique_ips' => [],
+        'access_types' => [],
+        'bot_hits' => 0
+    ];
+
+    save_map($mapFile,$map);
+
+    $found = $newId;
+    $created_new = true;
+}
 
     parse_str($_SERVER['QUERY_STRING'] ?? '',$qs);
     unset($qs['sig'],$qs['exp']);
 
     $_SESSION['ORIGINAL_REQUEST_URI'] = $ORIG_URI;
 
+    if (AUTO_SIGN_REDIRECT) {
+
     $signed = sign_url($found,$qs,SIGNED_TTL);
 
-    /* STORE PENDING LOG */
     set_pending_log([
         'EVENT'=>($created_new?'MAPPING_CREATED_AND_REDIRECT':'REALPATH_REDIRECT'),
         'ROUTE ID'=>$found
@@ -857,8 +1004,21 @@ $found = array_search($lookupKey,$map,true);
 
     header('Location: '.$signed);
     exit;
-}
 
+} else {
+
+    // direct include if redirect disabled
+    if (strtolower(pathinfo($realCandidate, PATHINFO_EXTENSION)) === 'php') {
+        include $realCandidate;
+    } else {
+        $mime = @mime_content_type($realCandidate) ?: 'application/octet-stream';
+        header('Content-Type: '.$mime);
+        readfile($realCandidate);
+    }
+
+    exit;
+}
+} // closes: if ($realCandidate !== false && file_exists($realCandidate))
 /* ================= NOT FOUND ================= */
 respond_error_and_log('NOT_FOUND',[
     'URL'=>$ORIG_URI
