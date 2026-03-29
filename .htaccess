@@ -20,10 +20,14 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 RewriteRule \.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|pdf)$ - [L,NC]
 
+#################################
+# ALLOW RUNTIME DIR ACCESS BLOCK
+#################################
+
+RewriteRule ^\.runtime/ - [F,L]
 
 #################################
-# EVERYTHING ELSE → MAPPER
+# EVERYTHING ELSE → v.php
 #################################
 
 RewriteRule ^ v.php [L,QSA]
-
