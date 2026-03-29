@@ -59,7 +59,7 @@ Access panel:
 ## 🔥 Demo (Request Flow)
 
 <p align="center">
-  <img src="./assets/demo.gif" alt="Demo Flow" width="95%">
+  <img src="cp.gif" alt="Demo Flow" width="95%">
 </p>
 
 **Typical flow:**
