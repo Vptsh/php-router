@@ -1,18 +1,8 @@
 <?php
-/* =============================================================
-   v.php — Enterprise PHP Router  |  Single-File Edition v3
-   No external config file required. Edit the CONFIG block only.
-   ============================================================= */
-
 session_start();
 date_default_timezone_set("Asia/Kolkata");
 
-/* ╔═══════════════════════════════════════════════════════════╗
-   ║                     MASTER CONFIG                        ║
-   ║   Only edit this block. Nothing else needs changing.     ║
-   ╚═══════════════════════════════════════════════════════════╝ */
-
-define('SIGN_SECRET',            'YOUR_SECRET_TOKEN_HERE');  // CHANGE THIS
+define('SIGN_SECRET',            'YOUR_SECRET_TOKEN_HERE');
 define('SIGNED_TTL',             7200);
 define('LOG_DEDUPE_WINDOW',      5);
 define('ROUTER_NAME',            'v.php');
@@ -25,11 +15,9 @@ define('TOKEN_SECURITY_ENABLED', true);
 define('BOT_PROTECTION_ENABLED', true);
 define('AUTO_SIGN_REDIRECT',     true);
 
-// URL style: 'short' => /?r=TOKEN  |  'classic' => /v.php?id=X&sig=Y
 define('URL_MODE',               'short');
 define('SHORT_BASE',             '/');
 
-// Rate limiting
 define('RATE_LIMIT_MAX',         40);
 define('RATE_LIMIT_WINDOW',      60);
 define('TOKEN_REPLAY_WINDOW',    7200);
@@ -38,27 +26,21 @@ define('STEALTH_BAN_TIME',       900);
 define('BOT_SCORE_BASE',         60);
 define('JSON_MAX_AGE',           604800);
 
-// Extra params allowed in signed URL
 define('SIGNED_EXTRA_PARAMS',    array('file','page','lang','mode'));
 
-// JSON auto-clean ages (seconds)
 define('CLEAN_U', 86400);
 define('CLEAN_K', 604800);
 define('CLEAN_B', 1209600);
 define('CLEAN_R', 3600);
 
-// Control panel — leave CP_PASSWORD blank '' to disable panel
-define('CP_PASSWORD', 'admin1234');   // CHANGE THIS
-define('CP_PATH',     '__cp__');      // /?__cp__  opens the panel
-
-/* ══════════════════  END OF CONFIG  ═══════════════════════ */
+define('CP_PASSWORD', 'admin1234');
+define('CP_PATH',     '__cp__');
 
 if (!ROUTER_ENABLED) {
     http_response_code(503);
     exit('Router disabled');
 }
 
-/* ------------------------------------------------------------- PATHS */
 $runtimeDir  = __DIR__ . '/.runtime';
 if (!is_dir($runtimeDir)) {
     mkdir($runtimeDir, 0777, true);
@@ -74,15 +56,11 @@ $stealthFile = $runtimeDir . '/x.json';
 $leakFile    = $runtimeDir . '/k.json';
 $errorPage   = __DIR__ . '/error.html';
 
-/* ------------------------------------------------------------- VISITOR ID */
 if (!isset($_SESSION['VISITOR_ID'])) {
     $_SESSION['VISITOR_ID'] = 'VIS-' . substr(md5(uniqid('', true)), 0, 6);
 }
 $VISITOR_ID = $_SESSION['VISITOR_ID'];
 
-/* =============================================================
-   CORE FUNCTIONS
-   ============================================================= */
 
 function client_ip() {
     if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) return $_SERVER['HTTP_CF_CONNECTING_IP'];
@@ -488,23 +466,21 @@ function svg($name, $size = 16) {
     return '<svg width="' . $s . '" height="' . $s . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0">' . $icons[$name] . '</svg>';
 }
 
-/* =============================================================
-   CONTROL PANEL CSS
-   ============================================================= */
 function cp_css() {
     $out  = '<style>';
     $out .= '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}';
     $out .= ':root{';
-    $out .= '--n950:#060c1a;--n900:#0b1628;--n850:#0e1d36;--n800:#112344;--n750:#152a54;';
-    $out .= '--n700:#1a3268;--n600:#1e3a7a;--n500:#24489c;';
-    $out .= '--accent:#3b82f6;--accent-h:#60a5fa;--teal:#14b8a6;';
-    $out .= '--red:#ef4444;--amber:#f59e0b;--green:#22c55e;';
-    $out .= '--text:#dde6f5;--text-2:#8fa3c8;--text-3:#4e6a94;';
-    $out .= '--border:rgba(59,130,246,0.14);--border-h:rgba(59,130,246,0.32);';
-    $out .= '--card:rgba(11,22,40,0.9);--card2:rgba(14,29,54,0.95);';
+    $out .= '--n950:#f5f0e8;--n900:#ede8de;--n850:#e4ddd2;--n800:#d8d0c4;--n750:#cec5b8;';
+    $out .= '--n700:#c4baac;--n600:#b8ad9e;--n500:#a89e8e;';
+    $out .= '--accent:#1a2e5a;--accent-h:#2a4a8a;--teal:#b8972a;';
+    $out .= '--red:#c0392b;--amber:#c9860a;--green:#1e7e44;';
+    $out .= '--text:#0f1d38;--text-2:#3a4f70;--text-3:#7a8fa8;';
+    $out .= '--border:rgba(26,46,90,0.15);--border-h:rgba(26,46,90,0.35);';
+    $out .= '--card:rgba(255,252,245,0.92);--card2:rgba(240,236,226,0.97);';
+    $out .= '--gold:#c9a84c;--gold-h:#e2c06a;';
     $out .= '--r:7px;--font:"Inter","Segoe UI",system-ui,sans-serif;}';
     $out .= 'html,body{height:100%;}';
-    $out .= 'body{background:var(--n950);background-image:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(30,58,122,0.22) 0,transparent 100%),radial-gradient(ellipse 50% 40% at 85% 90%,rgba(20,184,166,0.07) 0,transparent 100%);color:var(--text);font-family:var(--font);font-size:13.5px;line-height:1.55;}';
+    $out .= 'body{background:var(--n950);background-image:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(26,46,90,0.08) 0,transparent 100%),radial-gradient(ellipse 50% 40% at 85% 90%,rgba(201,168,76,0.06) 0,transparent 100%);color:var(--text);font-family:var(--font);font-size:13.5px;line-height:1.55;}';
     $out .= 'a{color:var(--accent);text-decoration:none;}a:hover{color:var(--accent-h);}';
     $out .= 'code{font-family:"Cascadia Code","Fira Mono","Consolas",monospace;font-size:12px;}';
     /* Shell */
@@ -513,20 +489,19 @@ function cp_css() {
     $out .= '.sidebar{width:224px;flex-shrink:0;background:var(--n900);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}';
     $out .= '.sb-brand{padding:18px 18px 14px;border-bottom:1px solid var(--border);}';
     $out .= '.sb-brand-row{display:flex;align-items:center;gap:10px;}';
-    $out .= '.sb-icon{width:32px;height:32px;border-radius:7px;background:linear-gradient(135deg,var(--n700),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}';
-    $out .= '.sb-name{font-size:14px;font-weight:700;color:#fff;letter-spacing:.2px;}';
+    $out .= '.sb-icon{width:32px;height:32px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent-h));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}';
+    $out .= '.sb-name{font-size:14px;font-weight:700;color:var(--accent);letter-spacing:.2px;}';
     $out .= '.sb-sub{font-size:11px;color:var(--text-3);margin-top:1px;}';
     $out .= '.sb-nav{flex:1;padding:8px 0;overflow-y:auto;}';
     $out .= '.nav-lbl{font-size:10px;font-weight:700;letter-spacing:.9px;color:var(--text-3);text-transform:uppercase;padding:14px 18px 4px;}';
     $out .= '.nav-btn{display:flex;align-items:center;gap:9px;padding:9px 18px;color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer;border:none;border-left:2px solid transparent;background:none;width:100%;text-align:left;transition:all .13s;font-family:var(--font);}';
-    $out .= '.nav-btn:hover{color:var(--text);background:rgba(59,130,246,.06);border-left-color:rgba(59,130,246,.4);}';
-    $out .= '.nav-btn.active{color:#fff;background:rgba(59,130,246,.11);border-left-color:var(--accent);}';
+    $out .= '.nav-btn:hover{color:var(--accent);background:rgba(26,46,90,.06);border-left-color:rgba(26,46,90,.3);}';
+    $out .= '.nav-btn.active{color:var(--accent);background:rgba(26,46,90,.1);border-left-color:var(--accent);}';
     $out .= '.sb-footer{padding:12px 14px;border-top:1px solid var(--border);}';
-    /* Main */
     $out .= '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}';
     $out .= '.topbar{background:var(--n900);border-bottom:1px solid var(--border);padding:0 26px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}';
     $out .= '.topbar-l{display:flex;align-items:center;gap:8px;}';
-    $out .= '.topbar-title{font-size:15px;font-weight:600;color:#fff;}';
+    $out .= '.topbar-title{font-size:15px;font-weight:600;color:var(--accent);}';
     $out .= '.topbar-r{display:flex;align-items:center;gap:14px;}';
     $out .= '.tb-meta{font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:5px;}';
     $out .= '.dot-green{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0;}';
@@ -537,76 +512,62 @@ function cp_css() {
     $out .= '.sc::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;}';
     $out .= '.sc.b::before{background:var(--accent)}.sc.t::before{background:var(--teal)}.sc.g::before{background:var(--green)}.sc.r::before{background:var(--red)}.sc.a::before{background:var(--amber)}';
     $out .= '.sc-ico{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}';
-    $out .= '.sc.b .sc-ico{background:rgba(59,130,246,.14);color:var(--accent)}.sc.t .sc-ico{background:rgba(20,184,166,.14);color:var(--teal)}.sc.g .sc-ico{background:rgba(34,197,94,.14);color:var(--green)}.sc.r .sc-ico{background:rgba(239,68,68,.14);color:var(--red)}.sc.a .sc-ico{background:rgba(245,158,11,.14);color:var(--amber)}';
-    $out .= '.sc-val{font-size:25px;font-weight:700;color:#fff;line-height:1;}';
+    $out .= '.sc.b .sc-ico{background:rgba(26,46,90,.12);color:var(--accent)}.sc.t .sc-ico{background:rgba(201,168,76,.14);color:var(--teal)}.sc.g .sc-ico{background:rgba(30,126,68,.12);color:var(--green)}.sc.r .sc-ico{background:rgba(192,57,43,.12);color:var(--red)}.sc.a .sc-ico{background:rgba(201,134,10,.12);color:var(--amber)}';
+    $out .= '.sc-val{font-size:25px;font-weight:700;color:var(--accent);line-height:1;}';
     $out .= '.sc-lbl{font-size:11px;color:var(--text-3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}';
     /* Panel */
     $out .= '.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;overflow:hidden;}';
     $out .= '.ph{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--card2);}';
-    $out .= '.pt{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#fff;}';
-    $out .= '.pt svg{color:var(--accent);}';
+    $out .= '.pt{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent);}';
+    $out .= '.pt svg{color:var(--teal);}';
     $out .= '.pb{padding:16px;}';
     $out .= '.pb0{padding:0;}';
-    /* Table */
     $out .= '.tbl{width:100%;border-collapse:collapse;}';
     $out .= '.tbl th{text-align:left;font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;padding:9px 14px;border-bottom:1px solid var(--border);}';
-    $out .= '.tbl td{padding:9px 14px;border-bottom:1px solid rgba(59,130,246,.05);font-size:13px;vertical-align:middle;}';
+    $out .= '.tbl td{padding:9px 14px;border-bottom:1px solid rgba(26,46,90,.06);font-size:13px;vertical-align:middle;}';
     $out .= '.tbl tbody tr:last-child td{border-bottom:none;}';
-    $out .= '.tbl tbody tr:hover td{background:rgba(59,130,246,.035);}';
-    /* Badges */
+    $out .= '.tbl tbody tr:hover td{background:rgba(26,46,90,.04);}';
     $out .= '.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;}';
-    $out .= '.bb{background:rgba(59,130,246,.15);color:#93c5fd}';
-    $out .= '.bg{background:rgba(34,197,94,.15);color:#86efac}';
-    $out .= '.br{background:rgba(239,68,68,.15);color:#fca5a5}';
-    $out .= '.ba{background:rgba(245,158,11,.15);color:#fcd34d}';
-    $out .= '.bm{background:rgba(78,106,148,.15);color:var(--text-3)}';
-    $out .= '.bt{background:rgba(20,184,166,.15);color:#5eead4}';
-    /* Inputs */
-    $out .= 'input[type=text],input[type=password],select,textarea{background:var(--n800);border:1px solid var(--border);border-radius:6px;padding:8px 11px;color:var(--text);font-size:13px;outline:none;width:100%;transition:border-color .14s,box-shadow .14s;font-family:var(--font);}';
-    $out .= 'input[type=text]:focus,input[type=password]:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.1);}';
+    $out .= '.bb{background:rgba(26,46,90,.12);color:var(--accent)}';
+    $out .= '.bg{background:rgba(30,126,68,.12);color:#1a6e3a}';
+    $out .= '.br{background:rgba(192,57,43,.12);color:#a83228}';
+    $out .= '.ba{background:rgba(201,134,10,.12);color:#8a5c08}';
+    $out .= '.bm{background:rgba(122,143,168,.12);color:var(--text-3)}';
+    $out .= '.bt{background:rgba(201,168,76,.14);color:#8a6a10}';
+    $out .= 'input[type=text],input[type=password],select,textarea{background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 11px;color:var(--text);font-size:13px;outline:none;width:100%;transition:border-color .14s,box-shadow .14s;font-family:var(--font);}';
+    $out .= 'input[type=text]:focus,input[type=password]:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,46,90,.1);}';
     $out .= '.frow{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;}';
     $out .= '.ff{flex:1;min-width:130px;}';
     $out .= '.fl{font-size:11px;color:var(--text-3);margin-bottom:5px;display:block;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}';
-    /* Buttons */
     $out .= '.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:6px;border:1px solid transparent;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .13s;white-space:nowrap;line-height:1;font-family:var(--font);}';
-    $out .= '.bp{background:var(--accent);color:#fff;border-color:var(--accent)}.bp:hover{background:#2563eb;border-color:#2563eb}';
-    $out .= '.bd{background:rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.28)}.bd:hover{background:rgba(239,68,68,.22);}';
-    $out .= '.bw{background:rgba(245,158,11,.12);color:#fcd34d;border-color:rgba(245,158,11,.28)}.bw:hover{background:rgba(245,158,11,.22);}';
-    $out .= '.bg2{background:var(--n800);color:var(--text-2);border-color:var(--border)}.bg2:hover{border-color:var(--accent);color:var(--text);}';
+    $out .= '.bp{background:var(--accent);color:#fff;border-color:var(--accent)}.bp:hover{background:var(--accent-h);border-color:var(--accent-h)}';
+    $out .= '.bd{background:rgba(192,57,43,.1);color:#a83228;border-color:rgba(192,57,43,.28)}.bd:hover{background:rgba(192,57,43,.2);}';
+    $out .= '.bw{background:rgba(201,168,76,.12);color:#8a6a10;border-color:rgba(201,168,76,.32)}.bw:hover{background:rgba(201,168,76,.22);}';
+    $out .= '.bg2{background:var(--n850);color:var(--text-2);border-color:var(--border)}.bg2:hover{border-color:var(--accent);color:var(--text);}';
     $out .= '.bs{padding:5px 9px;font-size:11.5px;}';
     $out .= '.bi{padding:5px;border-radius:5px;}';
-    /* Alert */
     $out .= '.alert{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:var(--r);margin-bottom:16px;font-size:13px;}';
-    $out .= '.as{background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.22);color:#86efac;}';
-    $out .= '.aw{background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.22);color:#fcd34d;}';
-    /* URL token */
-    $out .= '.url-tok{font-family:"Cascadia Code","Fira Mono","Consolas",monospace;font-size:11.5px;background:var(--n950);border:1px solid var(--border);border-radius:5px;padding:4px 9px;color:var(--teal);display:inline-block;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}';
-    /* Log box */
-    $out .= '.logbox{background:var(--n950);border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-family:"Cascadia Code","Fira Mono","Consolas",monospace;font-size:11.5px;color:#8fa3c8;max-height:370px;overflow-y:auto;white-space:pre-wrap;line-height:1.8;}';
-    /* Sections */
+    $out .= '.as{background:rgba(30,126,68,.09);border:1px solid rgba(30,126,68,.22);color:#1a6e3a;}';
+    $out .= '.aw{background:rgba(201,134,10,.09);border:1px solid rgba(201,134,10,.22);color:#8a5c08;}';
+    $out .= '.url-tok{font-family:"Cascadia Code","Fira Mono","Consolas",monospace;font-size:11.5px;background:#fff;border:1px solid var(--border);border-radius:5px;padding:4px 9px;color:var(--teal);display:inline-block;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}';
+    $out .= '.logbox{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-family:"Cascadia Code","Fira Mono","Consolas",monospace;font-size:11.5px;color:#3a4f70;max-height:370px;overflow-y:auto;white-space:pre-wrap;line-height:1.8;}';
     $out .= '.cpsec{display:none;}.cpsec.on{display:block;}';
-    /* Config rows */
     $out .= '.cfgr{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}'.'.cfgr:last-child{border-bottom:none;}';
     $out .= '.cfgk{font-size:12px;color:var(--text-2);}';
-    $out .= '.cfgv{font-size:12px;color:var(--text);font-weight:600;}';
-    /* Login */
+    $out .= '.cfgv{font-size:12px;color:var(--accent);font-weight:600;}';
     $out .= '.lw{min-height:100vh;display:flex;align-items:center;justify-content:center;}';
-    $out .= '.lc{background:var(--n900);border:1px solid var(--border);border-radius:11px;padding:38px 34px;width:370px;}';
+    $out .= '.lc{background:var(--n900);border:1px solid var(--border);border-radius:11px;padding:38px 34px;width:370px;box-shadow:0 8px 32px rgba(26,46,90,.12);}';
     $out .= '.ll{display:flex;align-items:center;gap:11px;margin-bottom:26px;}';
-    $out .= '.li{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,var(--n700),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;}';
-    $out .= '.lt{font-size:17px;font-weight:700;color:#fff;}';
+    $out .= '.li{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-h));display:flex;align-items:center;justify-content:center;color:#fff;}';
+    $out .= '.lt{font-size:17px;font-weight:700;color:var(--accent);}';
     $out .= '.ls{font-size:12px;color:var(--text-3);margin-top:2px;}';
-    $out .= '.lerr{color:#fca5a5;font-size:12.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px;}';
-    /* Scrollbar */
+    $out .= '.lerr{color:#a83228;font-size:12.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px;}';
     $out .= '::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-h);border-radius:99px;}';
     $out .= '@media(max-width:660px){.sidebar{display:none;}.stat-grid{grid-template-columns:1fr 1fr;}}';
     $out .= '</style>';
     return $out;
 }
 
-/* =============================================================
-   CONTROL PANEL JS
-   ============================================================= */
 function cp_js() {
     $check = svg('check', 14);
     $out  = '<script>';
@@ -631,9 +592,6 @@ function cp_js() {
     return $out;
 }
 
-/* =============================================================
-   LOGIN PAGE
-   ============================================================= */
 function cp_login($err = '') {
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
     echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
@@ -657,9 +615,6 @@ function cp_login($err = '') {
     exit;
 }
 
-/* =============================================================
-   CONTROL PANEL MAIN
-   ============================================================= */
 function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $botFile, $stealthFile, $tokenFile) {
 
     /* Auth */
@@ -793,7 +748,7 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
     echo cp_css();
     echo '</head><body><div class="shell">';
 
-    /* ------ SIDEBAR ------ */
+    
     echo '<div class="sidebar">';
     echo '<div class="sb-brand"><div class="sb-brand-row">';
     echo '<div class="sb-icon">' . svg('zap', 17) . '</div>';
@@ -810,9 +765,9 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
     echo '<div class="sb-footer"><form method="post">';
     echo '<button name="action" value="cp_logout" class="btn bg2" style="width:100%;justify-content:center">';
     echo svg('logout', 13) . ' &nbsp;Sign Out</button></form></div>';
-    echo '</div>'; /* end sidebar */
+    echo '</div>'; 
 
-    /* ------ MAIN ------ */
+    
     echo '<div class="main">';
     echo '<div class="topbar"><div class="topbar-l">';
     echo svg('zap', 14) . '&nbsp;<span class="topbar-title" id="tbtitle">Overview</span>';
@@ -820,7 +775,7 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
     echo '<div class="tb-meta"><div class="dot-green"></div>&nbsp;Router Online</div>';
     echo '<div class="tb-meta">' . svg('clock', 12) . '&nbsp;' . date('d M Y, H:i') . ' IST</div>';
     echo '<div class="tb-meta">' . svg('globe', 12) . '&nbsp;' . htmlspecialchars(client_ip()) . '</div>';
-    echo '</div></div>'; /* end topbar */
+    echo '</div></div>'; 
 
     echo '<div class="content">';
 
@@ -828,7 +783,7 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
         echo '<div class="alert ' . $msg_type . '">' . svg($msg_type === 'aw' ? 'warning' : 'check', 14) . '&nbsp;<span>' . $msg . '</span></div>';
     }
 
-    /* ====== OVERVIEW ====== */
+    
     echo '<div id="sec-overview" class="cpsec on">';
     echo '<div class="stat-grid">';
     echo '<div class="sc b"><div class="sc-ico">' . svg('routemap', 15) . '</div><div class="sc-val">' . $totalRoutes . '</div><div class="sc-lbl">Total Routes</div></div>';
@@ -836,7 +791,7 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
     echo '<div class="sc t"><div class="sc-ico">' . svg('zap', 15)      . '</div><div class="sc-val">' . $todayHits   . '</div><div class="sc-lbl">Today</div></div>';
     echo '<div class="sc r"><div class="sc-ico">' . svg('ban', 15)      . '</div><div class="sc-val">' . count($bannedIPs) . '</div><div class="sc-lbl">Banned IPs</div></div>';
     echo '<div class="sc a"><div class="sc-ico">' . svg('warning', 15)  . '</div><div class="sc-val">' . count($botData)   . '</div><div class="sc-lbl">Bot Entries</div></div>';
-    echo '</div>'; /* stat-grid */
+    echo '</div>'; 
 
     echo '<div class="panel"><div class="ph"><div class="pt">' . svg('activity', 14) . '&nbsp;Route Traffic Summary</div></div>';
     echo '<div class="pb0"><table class="tbl"><thead><tr>';
@@ -863,7 +818,7 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
         echo '<button class="btn bg2 bs bi" style="margin-left:5px" title="Copy" onclick="cpCopy(\'' . addslashes($su) . '\',this)">' . svg('copy', 12) . '</button></td>';
         echo '</tr>';
     }
-    echo '</tbody></table></div></div>'; /* panel */
+    echo '</tbody></table></div></div>'; 
 
     if (!empty($topBots)) {
         echo '<div class="panel"><div class="ph"><div class="pt">' . svg('shield', 14) . '&nbsp;Top Bot Scores</div></div>';
@@ -888,9 +843,9 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
         }
         echo '</tbody></table></div></div>';
     }
-    echo '</div>'; /* sec-overview */
+    echo '</div>'; 
 
-    /* ====== ROUTES ====== */
+    
     echo '<div id="sec-routes" class="cpsec">';
     echo '<div class="panel"><div class="ph"><div class="pt">' . svg('plus', 14) . '&nbsp;Add New Route</div></div>';
     echo '<div class="pb"><form method="post"><div class="frow">';
@@ -922,9 +877,9 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
         echo '</tr>';
     }
     echo '</tbody></table></div></div>';
-    echo '</div>'; /* sec-routes */
+    echo '</div>'; 
 
-    /* ====== SECURITY ====== */
+    
     echo '<div id="sec-security" class="cpsec">';
     echo '<div class="panel"><div class="ph"><div class="pt">' . svg('ban', 14) . '&nbsp;IP Ban Control</div></div>';
     echo '<div class="pb"><form method="post"><div class="frow">';
@@ -960,9 +915,9 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
         echo '<td style="color:var(--text-3);font-size:12px">' . $ts . '</td></tr>';
     }
     echo '</tbody></table></div></div>';
-    echo '</div>'; /* sec-security */
+    echo '</div>'; 
 
-    /* ====== LOGS ====== */
+    
     echo '<div id="sec-logs" class="cpsec">';
     echo '<div class="panel"><div class="ph">';
     echo '<div class="pt">' . svg('log', 14) . '&nbsp;Access Log &nbsp;<span style="color:var(--text-3);font-size:11px;font-weight:400">last 150 lines</span></div>';
@@ -973,9 +928,9 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
     echo '<div class="pt">' . svg('shield', 14) . '&nbsp;Security Log &nbsp;<span style="color:var(--text-3);font-size:11px;font-weight:400">last 150 lines</span></div>';
     echo '<form method="post"><button name="action" value="clear_security_log" class="btn bs bd">' . svg('trash', 12) . '&nbsp;Clear</button></form>';
     echo '</div><div class="pb"><div class="logbox">' . htmlspecialchars($recentSecurity !== '' ? $recentSecurity : '— log is empty —') . '</div></div></div>';
-    echo '</div>'; /* sec-logs */
+    echo '</div>'; 
 
-    /* ====== TOOLS ====== */
+    
     echo '<div id="sec-tools" class="cpsec">';
 
     /* URL generator */
@@ -1004,7 +959,7 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
     echo 'document.getElementById("gen-url").textContent=window.location.origin+u;';
     echo 'document.getElementById("gen-out").style.display="";}';
     echo '</script>';
-    echo '</div></div>'; /* panel */
+    echo '</div></div>'; 
 
     /* Runtime files */
     echo '<div class="panel"><div class="ph"><div class="pt">' . svg('server', 14) . '&nbsp;Runtime Files</div></div>';
@@ -1039,11 +994,11 @@ function run_cp($mapFile, $accessLog, $securityLog, $runtimeDir, $ipFailFile, $b
         echo '<div class="cfgr"><span class="cfgk">' . $k . '</span><span class="cfgv">' . $v . '</span></div>';
     }
     echo '</div></div>';
-    echo '</div>'; /* sec-tools */
+    echo '</div>'; 
 
-    echo '</div>'; /* content */
-    echo '</div>'; /* main */
-    echo '</div>'; /* shell */
+    echo '</div>'; 
+    echo '</div>'; 
+    echo '</div>'; 
     echo cp_js();
     echo '</body></html>';
     exit;
@@ -1101,9 +1056,6 @@ if (!ip_rate_ok($IP)) {
     respond_error_and_log('RATE_LIMIT_EXCEEDED', array('URL' => $ORIG_URI));
 }
 
-/* =============================================================
-   SHORT TOKEN DECODE  (?r=TOKEN)
-   ============================================================= */
 if (URL_MODE === 'short' && isset($_GET['r'])) {
     $decoded = decode_short_token($_GET['r']);
     if ($decoded === null) {
@@ -1114,9 +1066,6 @@ if (URL_MODE === 'short' && isset($_GET['r'])) {
     $_GET = array_merge($_GET, $decoded);
 }
 
-/* =============================================================
-   SIGNED ACCESS  (?id=X &sig=Y &exp=Z)
-   ============================================================= */
 if (isset($_GET['id']) && isset($_GET['sig'])) {
 
     $verify = verify_signature_details();
@@ -1204,9 +1153,6 @@ if (isset($_GET['id']) && isset($_GET['sig'])) {
     exit;
 }
 
-/* =============================================================
-   SIMPLE ID  (?id=X)  — sign and redirect
-   ============================================================= */
 if (isset($_GET['id']) && !isset($_GET['sig'])) {
     $id = $_GET['id'];
     if (!isset($map[$id])) {
@@ -1220,9 +1166,6 @@ if (isset($_GET['id']) && !isset($_GET['sig'])) {
     exit;
 }
 
-/* =============================================================
-   ROOT  (/)
-   ============================================================= */
 if ($PATH === '' || $PATH === 'v.php') {
     $_SESSION['ORIGINAL_REQUEST_URI'] = $ORIG_URI;
     set_pending_log(array('EVENT' => 'ROOT_REDIRECT', 'ROUTE ID' => '0'));
@@ -1230,9 +1173,6 @@ if ($PATH === '' || $PATH === 'v.php') {
     exit;
 }
 
-/* =============================================================
-   REAL PATH  (direct file → find/create route → redirect)
-   ============================================================= */
 $realCandidate = safe_realpath_within(__DIR__, $PATH);
 if ($realCandidate !== false) $realCandidate = resolve_directory_index($realCandidate);
 
@@ -1286,7 +1226,4 @@ if ($realCandidate !== false && file_exists($realCandidate)) {
     }
 }
 
-/* =============================================================
-   NOT FOUND
-   ============================================================= */
 respond_error_and_log('NOT_FOUND', array('URL' => $ORIG_URI));
